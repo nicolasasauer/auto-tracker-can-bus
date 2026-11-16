@@ -1,0 +1,64 @@
+name: CAN-Leser Firmware
+
+# Unit-Tests des plattformunabhängigen Kerns und Bau der Firmware für den
+# XIAO ESP32-C6. Nur auf GitHub-Rechnern (ubuntu-latest), siehe werkbank.yml.
+on:
+  pull_request:
+    paths:
+      - 'firmware/**'
+      - '.github/workflows/firmware.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'firmware/**'
+      - '.github/workflows/firmware.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firmware-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: firmware
+
+jobs:
+  firmware:
+    name: Kern-Tests, Firmware bauen
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Kern-Tests (ASan/UBSan)
+        run: ./test/run_tests.sh
+
+      # Ringpuffer zwischen Lese-Aufgabe und Hauptschleife zusätzlich auf
+      # Datenrennen prüfen. setarch -R: ohne zufällige Adressen, sonst
+      # stürzt TSan auf neueren Kerneln schon beim Start ab.
+      - name: Kern-Tests (ThreadSanitizer)
+        run: SANITIZE=0 CXX="g++ -fsanitize=thread" setarch "$(uname -m)" -R ./test/run_tests.sh
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: PlatformIO installieren
+        run: pip install --quiet platformio
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ runner.os }}-${{ hashFiles('firmware/platformio.ini') }}
+
+      - name: Firmware bauen
+        run: pio run -e xiao_esp32c6
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: can-logger-firmware
+          path: firmware/.pio/build/xiao_esp32c6/firmware.bin
+          retention-days: 7

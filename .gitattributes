@@ -1,0 +1,5 @@
+# Generierte Dateien: `git diff` zeigt nur „geändert“, GitHub klappt sie im PR ein.
+pubspec.lock  -diff linguist-generated
+
+# Skripte laufen in der CI unter Linux.
+*.sh text eol=lf
