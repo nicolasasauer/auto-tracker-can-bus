@@ -34,6 +34,16 @@ Sprache von UI, Doku, Kommentaren und Commits: Deutsch. Nur `README.md` zusätzl
 ## Git
 - Änderungen über Pull Requests auf `main`. PR-Beschreibung: `## Was hat sich geändert`, dann `## Tests` (mit Gegenproben).
 
+## Release
+- Auslöser: Tag `v*` pushen (`v0.2.0`; mit Bindestrich wie `v0.2.0-beta1` als Vorabversion).
+- `release.yml` läuft im Environment **`release`** (Settings → Environments):
+  - Deployment branches and tags: nur Tags `v*`.
+  - Required reviewers: der Besitzer (Freigabe jedes Laufs); „Allow administrators to bypass“ aus.
+  - Secrets nur dort, nicht als Repo-Secrets: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`,
+    optional `KEY_PASSWORD`.
+- Fremde Actions in `release.yml` sind auf Commit-SHAs festgelegt. Beim Aktualisieren SHA und
+  Versionskommentar zusammen ändern (`git ls-remote --tags https://github.com/<owner>/<action>.git`).
+
 ## No-Gos
 - **Nie auf den CAN-Bus senden.** Die Firmware hört nur mit (Listen-Only, auch keine ACKs). Kein Code, der
   Botschaften sendet, keinen Befehl zum Umschalten in einen aktiven Modus.
