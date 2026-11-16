@@ -64,6 +64,12 @@ jobs:
         working-directory: app
         run: flutter test --reporter failures-only
 
+      # Prüft, dass das Skript für die README-Bilder noch läuft. Die Bilder
+      # selbst werden nicht eingecheckt (das passiert lokal von Hand).
+      - name: Screenshot-Skript
+        working-directory: app
+        run: flutter test --reporter failures-only tool/screenshots/screenshots_test.dart
+
       # Ohne Schlüssel signiert Gradle mit dem Debug-Schlüssel. Das prüft
       # nur, ob sich die App bauen lässt; die APK bleibt im Runner.
       - name: APK-Probebau (arm64)

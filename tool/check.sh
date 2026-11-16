@@ -6,6 +6,7 @@
 #   tool/check.sh werkbank test/foo_test.dart  nur diese Tests (ohne Analyse)
 #   tool/check.sh link                         Paket can_link
 #   tool/check.sh firmware                     Kern-Tests der Firmware (C++)
+#   tool/check.sh screenshots                  README-Bilder nach docs/screenshots/
 #   tool/check.sh alle                         link, werkbank, firmware
 #
 # Ein fehlgeschlagener Schritt zeigt Anfang und Ende seiner Ausgabe
@@ -70,19 +71,29 @@ firmware_check() {
   step "firmware: Kern-Tests" ./test/run_tests.sh
 }
 
+screenshots_check() {
+  cd "$root/app" || exit 2
+  FLUTTER_ROOT="$(dirname "$(dirname "$(command -v flutter)")")"
+  export FLUTTER_ROOT
+  quiet=1 step "screenshots: pub get" flutter pub get
+  step "screenshots: Skript" flutter test --reporter failures-only \
+    tool/screenshots/screenshots_test.dart
+}
+
 target="${1:-}"
 [ "$#" -gt 0 ] && shift
 case "$target" in
   werkbank) flutter_check app "$@" ;;
   link) flutter_check packages/can_link "$@" ;;
   firmware) firmware_check ;;
+  screenshots) screenshots_check ;;
   alle)
     flutter_check packages/can_link
     flutter_check app
     firmware_check
     ;;
   *)
-    sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
     exit 2
     ;;
 esac

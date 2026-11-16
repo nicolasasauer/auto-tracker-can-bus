@@ -21,6 +21,7 @@ Sprache von UI, Doku, Kommentaren und Commits: Deutsch. Nur `README.md` zusätzl
     bash tool/check.sh link                          # can_link
     bash tool/check.sh firmware                      # Kern-Tests der Firmware (nur C++-Compiler nötig)
     bash tool/check.sh alle
+    bash tool/check.sh screenshots                   # README-Bilder neu (nur Simulation), dann einchecken
     cd firmware && pio run -e xiao_esp32c6 -s        # Firmware bauen
 
 - `flutter test` nie ohne `--reporter failures-only`.

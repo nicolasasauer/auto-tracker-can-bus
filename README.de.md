@@ -17,6 +17,44 @@ Signale (Drehzahl, Tempo, Lenkwinkel …) den Bits zuordnen und daraus ein
 > Fahrzeug, an der Batterie oder sonstige Folgen übernimmt niemand eine
 > Haftung (siehe [LICENSE](LICENSE)).
 
+## Quickstart
+
+1. **Hardware:** XIAO ESP32-C6 auf das XIAO CAN Bus Expansion Board stecken.
+   OBD-Kabel an die Klemme: Pin 6 → CAN-H, Pin 14 → CAN-L, Pin 4/5 → GND.
+   Pin 16 (+12 V) **nicht** anschließen, der Leser läuft über USB.
+2. **Firmware flashen:** `pip install platformio`, dann
+   `cd firmware && pio run -t upload`.
+3. **App installieren:** APK aus den [Releases](../../releases) aufs Handy.
+4. **Koppeln:** Leser am PC, `pio device monitor`, `pair` eingeben. In der App
+   „CAN-Leser suchen“ und den 6-stelligen Code eingeben.
+5. **Mithören:** Zündung an. Die App zeigt jede CAN-ID mit ihren Bytes.
+   Eine ID antippen und Bits markieren, um ein Signal anzulegen.
+6. **Von der KI auswerten lassen:** In der Sniff-Ansicht aufnehmen (roter
+   Punkt), dabei Marken setzen („Blinker links“). Unter „Mitschnitte“ →
+   **„Für KI-Analyse teilen“** gehen Mitschnitt, Profil und eine Anleitung an
+   die KI deiner Wahl. Ihre Antwort ist ein Profil: in der App über die
+   Zwischenablage importieren und am Auto prüfen. Achtung: Ein Mitschnitt kann
+   die Fahrgestellnummer enthalten (manche Autos senden sie im Klartext).
+
+Ohne Hardware: in der App **„Simulation starten“**.
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/sniff.png" width="200" alt="Sniff-Ansicht"></td>
+    <td><img src="docs/screenshots/bitraster.png" width="200" alt="Bits zuordnen"></td>
+    <td><img src="docs/screenshots/signal.png" width="200" alt="Signal mit Verlauf"></td>
+    <td><img src="docs/screenshots/ki-teilen.png" width="200" alt="Mitschnitt für die KI teilen"></td>
+  </tr>
+  <tr>
+    <td>Sniff-Ansicht</td>
+    <td>Bits zuordnen</td>
+    <td>Signal mit Verlauf</td>
+    <td>Mitschnitt für die KI teilen</td>
+  </tr>
+</table>
+
+Die Bilder zeigen die eingebaute Simulation (erfundene Botschaften).
+
 ## Inhalt
 
 | Ordner | Inhalt |
