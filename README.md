@@ -19,6 +19,45 @@ them into a **vehicle profile** (JSON). A first profile for the Peugeot 208 I
 The app, the firmware console, code comments and the detailed docs are in
 German.
 
+## Quickstart
+
+1. **Hardware:** plug the XIAO ESP32-C6 onto the XIAO CAN Bus Expansion
+   Board. OBD cable to the terminal: pin 6 → CAN-H, pin 14 → CAN-L,
+   pin 4/5 → GND. Do **not** connect pin 16 (+12 V); the reader runs on USB.
+2. **Flash the firmware:** `pip install platformio`, then
+   `cd firmware && pio run -t upload`.
+3. **Install the app:** APK from the [releases](../../releases) onto your phone.
+4. **Pair:** reader on the PC, `pio device monitor`, type `pair`. In the app
+   tap "CAN-Leser suchen" and enter the 6-digit code.
+5. **Listen:** ignition on. The app shows every CAN ID with its bytes. Tap
+   an ID and mark bits to create a signal.
+6. **Let an AI analyse it:** record in the sniff view (red dot) and set
+   markers ("left indicator"). Under "Mitschnitte" (recordings) →
+   **"Für KI-Analyse teilen"** (share for AI analysis) the recording, the
+   profile and instructions go to the AI of your choice. Its answer is a
+   profile: import it from the clipboard and check it in the car. Note: a
+   recording may contain your VIN (some cars broadcast it in plain text).
+
+No hardware: tap **"Simulation starten"** in the app.
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/sniff.png" width="200" alt="Sniff view"></td>
+    <td><img src="docs/screenshots/bitraster.png" width="200" alt="Mapping bits"></td>
+    <td><img src="docs/screenshots/signal.png" width="200" alt="Signal with graph"></td>
+    <td><img src="docs/screenshots/ki-teilen.png" width="200" alt="Share recording with an AI"></td>
+  </tr>
+  <tr>
+    <td>Sniff view</td>
+    <td>Mapping bits</td>
+    <td>Signal with graph</td>
+    <td>Share recording with an AI</td>
+  </tr>
+</table>
+
+The screenshots show the built-in simulation (made-up messages). The app is
+in German.
+
 ## Contents
 
 | Folder | Contents |
