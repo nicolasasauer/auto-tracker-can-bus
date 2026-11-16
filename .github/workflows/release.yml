@@ -1,0 +1,112 @@
+name: Release
+
+# Veröffentlicht eine Version: signierte Werkbank-APK und Firmware unter
+# „Releases“. Auslöser: ein Tag `v*` (z. B. v0.1.0) oder von Hand.
+#
+# Die APK wird nur mit dem eigenen Schlüssel aus den Repo-Secrets signiert
+# (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, optional KEY_PASSWORD).
+# Fehlt er, bricht der Lauf ab: keine unsignierte oder mit dem
+# Debug-Schlüssel signierte APK. Secrets stehen nur in diesem Repository
+# zur Verfügung, nie in PRs aus Forks.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: APK und Firmware veröffentlichen
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Signaturschlüssel bereitstellen
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ]; then
+            echo "::error::Kein Signaturschlüssel (Secrets KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS). Abbruch, es wird nichts veröffentlicht."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.6'
+          channel: stable
+
+      - name: Tests
+        run: |
+          (cd packages/can_link && flutter pub get && flutter test --reporter failures-only)
+          (cd app && flutter pub get && flutter analyze && flutter test --reporter failures-only)
+
+      - name: APK bauen (arm64)
+        working-directory: app
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.KEYSTORE_PASSWORD }}
+        run: |
+          flutter build apk --release --target-platform android-arm64 \
+            --build-number=${{ github.run_number }}
+          version=$(grep '^version:' pubspec.yaml | sed 's/version: //; s/+.*//')
+          mkdir -p "$RUNNER_TEMP/out"
+          cp build/app/outputs/flutter-apk/app-release.apk \
+            "$RUNNER_TEMP/out/can-werkbank-$version-${{ github.run_number }}-arm64-v8a.apk"
+
+      # Sicherheitsnetz: Gradle fällt ohne Schlüssel auf den Debug-Schlüssel
+      # zurück. So eine APK darf nie veröffentlicht werden.
+      - name: Signatur prüfen
+        run: |
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n 1)
+          certs=$("$apksigner" verify --print-certs "$RUNNER_TEMP"/out/*.apk)
+          echo "$certs" | grep -E 'Signer #1 certificate (DN|SHA-256)'
+          if echo "$certs" | grep -q 'CN=Android Debug'; then
+            echo "::error::APK ist mit dem Debug-Schlüssel signiert. Abbruch."
+            exit 1
+          fi
+
+      - name: Firmware – Kern-Tests
+        working-directory: firmware
+        run: ./test/run_tests.sh
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Firmware bauen
+        working-directory: firmware
+        run: |
+          pip install --quiet platformio
+          pio run -e xiao_esp32c6
+          cp .pio/build/xiao_esp32c6/firmware.bin "$RUNNER_TEMP/out/can-logger-xiao-esp32c6.bin"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('vorschau-{0}', github.run_number) }}
+          name: ${{ github.ref_type == 'tag' && github.ref_name || format('Vorschau {0} ({1})', github.run_number, github.ref_name) }}
+          target_commitish: ${{ github.sha }}
+          prerelease: ${{ github.ref_type != 'tag' }}
+          body: |
+            CAN-Werkbank (APK für Android, arm64) und Firmware für den CAN-Leser
+            (Seeed XIAO ESP32-C6 mit XIAO CAN Bus Expansion Board).
+            Flashen: siehe README. Nur mithören; Nutzung auf eigene Gefahr.
+          files: ${{ runner.temp }}/out/*

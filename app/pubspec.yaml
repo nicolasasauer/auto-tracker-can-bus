@@ -1,0 +1,27 @@
+name: can_werkbank
+description: "CAN-Werkbank: CAN-Bus mithören und Fahrzeugprofile erstellen."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.5
+
+dependencies:
+  can_link:
+    path: ../packages/can_link
+  clock: ^1.1.3
+  file_picker: ^13.3.3
+  flutter:
+    sdk: flutter
+  path_provider: ^2.1.6
+  share_plus: 13.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/profiles/

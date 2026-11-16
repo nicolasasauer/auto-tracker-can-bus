@@ -1,0 +1,17 @@
+# Build-Ordner und Caches
+build/
+.dart_tool/
+.pio/
+.gradle/
+
+# Signaturschlüssel nie einchecken
+*.jks
+*.keystore
+key.properties
+
+# Echte Mitschnitte der Werkbank (können die Fahrgestellnummer enthalten)
+mitschnitt*.csv
+
+# Claude Code: persönliche Einstellungen und Arbeitskopien
+.claude/settings.local.json
+.claude/worktrees/

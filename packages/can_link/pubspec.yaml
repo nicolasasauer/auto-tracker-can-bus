@@ -1,0 +1,27 @@
+name: can_link
+description: "Gemeinsame Schnittstelle zum CAN-Leser (BLE-Protokoll, Dekodierung) für die CAN-Werkbank und andere Apps."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.13.5
+  flutter: ">=1.17.0"
+
+dependencies:
+  clock: ^1.1.3
+  flutter:
+    sdk: flutter
+  # BLE: BSD-3-Lizenz. flutter_blue_plus wäre verbreiteter, verlangt aber
+  # seit Version 2 für kommerzielle Nutzung eine kostenpflichtige Lizenz und
+  # sendet beim Bauen Telemetrie.
+  universal_ble: ^3.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  # Fahrzeugprofile; Apps laden sie als `packages/can_link/profiles/...`.
+  assets:
+    - profiles/

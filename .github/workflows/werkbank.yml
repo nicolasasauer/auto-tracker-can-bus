@@ -1,0 +1,71 @@
+name: CAN-Werkbank
+
+# Analyse und Tests von can_link und der Werkbank, dazu ein Probebau der
+# APK. Läuft nur auf GitHub-Rechnern (ubuntu-latest): Das Repository ist
+# öffentlich, ein eigener Rechner würde Code aus fremden PRs ausführen.
+# Die APK hier ist nur ein Probebau (Debug-Schlüssel) und wird nicht
+# veröffentlicht; signierte APKs baut release.yml.
+on:
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'packages/can_link/**'
+      - '.github/workflows/werkbank.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'packages/can_link/**'
+      - '.github/workflows/werkbank.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: werkbank-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Analyse, Tests, APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.6'
+          channel: stable
+          cache: true
+
+      - name: can_link – Abhängigkeiten, Analyse, Tests
+        working-directory: packages/can_link
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test --reporter failures-only
+
+      - name: Werkbank – Abhängigkeiten
+        working-directory: app
+        run: flutter pub get
+
+      - name: Werkbank – Analyse
+        working-directory: app
+        run: flutter analyze
+
+      - name: Werkbank – Tests
+        working-directory: app
+        run: flutter test --reporter failures-only
+
+      # Ohne Schlüssel signiert Gradle mit dem Debug-Schlüssel. Das prüft
+      # nur, ob sich die App bauen lässt; die APK bleibt im Runner.
+      - name: APK-Probebau (arm64)
+        working-directory: app
+        run: flutter build apk --release --target-platform android-arm64
