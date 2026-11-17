@@ -87,16 +87,14 @@ jobs:
             "$RUNNER_TEMP/out/can-werkbank-$version-${{ github.run_number }}-arm64-v8a.apk"
 
       # Sicherheitsnetz: Gradle fällt ohne Schlüssel auf den Debug-Schlüssel
-      # zurück. So eine APK darf nie veröffentlicht werden.
+      # zurück. Veröffentlicht wird nur eine APK mit genau dem Schlüssel aus
+      # den Secrets (Fingerabdruck per keytool). Zeigt die Ausgabe von
+      # apksigner immer an, damit ein Abbruch nicht stumm bleibt.
       - name: Signatur prüfen
-        run: |
-          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n 1)
-          certs=$("$apksigner" verify --print-certs "$RUNNER_TEMP"/out/*.apk)
-          echo "$certs" | grep -E 'Signer #1 certificate (DN|SHA-256)'
-          if echo "$certs" | grep -q 'CN=Android Debug'; then
-            echo "::error::APK ist mit dem Debug-Schlüssel signiert. Abbruch."
-            exit 1
-          fi
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: bash tool/check_apk_signature.sh "$RUNNER_TEMP"/out/*.apk
 
       # Schlüssel nicht länger als nötig auf dem Rechner lassen.
       - name: Schlüssel löschen
