@@ -1,6 +1,6 @@
 # CAN-Leser – Konzept
 
-Beschreibt den eigenen CAN-Leser auf ESP32-Basis, die dazugehörige **CAN-Werkbank** (App) und vor allem das **Fahrzeugprofil**. Die BLE-Schnittstelle steht in [`CAN-BLE-PROTOKOLL.md`](CAN-BLE-PROTOKOLL.md). Mit diesem Profil bleiben Firmware und Apps generisch und werden per JSON auf ein konkretes Auto angepasst.
+Beschreibt den eigenen CAN-Leser auf ESP32-Basis, wie Apps ihn nutzen (allen voran der **Auto Tracker**) und vor allem das **Fahrzeugprofil**. Die BLE-Schnittstelle steht in [`CAN-BLE-PROTOKOLL.md`](CAN-BLE-PROTOKOLL.md). Mit diesem Profil bleiben Firmware und Apps generisch und werden per JSON auf ein konkretes Auto angepasst.
 
 Fahrzeug, für das das System zuerst konfiguriert werden soll: **Peugeot 208 (1. Generation, Baujahr 2016) mit 1,0-Liter-Benziner**.
 
@@ -28,12 +28,12 @@ Fahrzeug, für das das System zuerst konfiguriert werden soll: **Peugeot 208 (1.
               ┌─────────────┴──────────────┐
               │                            │
 ┌─────────────┴───────────┐  ┌─────────────┴───────────┐
-│  CAN-Werkbank            │  │  weitere Apps (optional) │
-│  app/                    │  │  z. B. ein Fahrtenbuch   │
-│  • Bus mithören (Sniff)  │  │  • holt die Alltagsdaten │
-│  • Signale zuordnen      │  │    selbst ab (Fahrten,   │
-│  • Profile erstellen,    │  │    Tanken, Kilometer-    │
-│    auf den Leser laden   │  │    stand)                │
+│  Auto Tracker (App)      │  │  weitere Apps (optional) │
+│  • koppeln, Live-Werte   │  │  z. B. ein Fahrtenbuch   │
+│  • Fahrten mit CAN-Daten │  │  • holt die Alltagsdaten │
+│  • Mitschnitt für die KI │  │    selbst ab (Fahrten,   │
+│  • Profil importieren    │  │    Tanken, Kilometer-    │
+│                          │  │    stand)                │
 └─────────────────────────┘  └─────────────────────────┘
 ```
 
@@ -42,17 +42,19 @@ Fahrzeug, für das das System zuerst konfiguriert werden soll: **Peugeot 208 (1.
 | Komponente | Weiß über das Auto Bescheid? | Aufgabe |
 |---|---|---|
 | ESP32-Firmware | Nur über das geladene Profil | CAN lesen, Diagnose-Abfragen senden, Rohwerte in physikalische Werte umrechnen, puffern, schlafen |
-| CAN-Werkbank | Nur über das Profil | Entwicklerwerkzeug: Bus mithören, Signale zuordnen, Profil erstellen und auf den ESP32 laden, Live-Ansicht |
+| Auto Tracker (App) | Nur über das Profil | Koppeln, Live-Werte, Fahrten mit CAN-Daten, Mitschnitte für die KI-Auswertung, Profil importieren |
 | Weitere Apps | **Gar nicht** | Holen die Alltagsdaten über dieselbe BLE-Schnittstelle (`packages/can_link`) und kennen nur die genormten Signalnamen |
 | **Fahrzeugprofil (JSON)** | **Ja, ausschließlich hier** | Alles Fahrzeugspezifische an einer Stelle |
 
 Neues Auto = neues Profil. Keine Codeänderung.
 
+Die frühere Begleit-App **CAN-Werkbank** (Sniff-Ansicht, Bits von Hand zuordnen) liegt nicht mehr in diesem Repository; ihre Alltagsfunktionen stecken im Auto Tracker. Die alten APKs stehen weiter unter „Releases“ (bis v1.0.2). Wo dieses Konzept unten die Werkbank nennt, beschreibt es ihren damaligen Stand.
+
 ---
 
 ## 2. Die Kernidee: genormte Signalnamen
 
-Fahrzeugprofile übersetzen fahrzeugspezifische CAN-Daten in einen **festen Katalog von Signalnamen**. Alles oberhalb des Profils (Firmware-Logik, CAN-Werkbank, weitere Apps) arbeitet nur mit diesen Namen.
+Fahrzeugprofile übersetzen fahrzeugspezifische CAN-Daten in einen **festen Katalog von Signalnamen**. Alles oberhalb des Profils (Firmware-Logik, Apps) arbeitet nur mit diesen Namen.
 
 | Signal | Einheit | Wofür gebraucht | Pflicht? |
 |---|---|---|---|
@@ -218,7 +220,7 @@ Dazu gehören (geplant, noch nicht im Repository):
 - `profiles/generic-obd2.json`: Basisprofil nur mit genormten OBD-II-PIDs. Funktioniert bei jedem Auto ab Tag 1, wenn auch mit wenigen Werten.
 - Ein Profil pro Fahrzeug, das von `generic-obd2` erbt.
 
-**Profil auf den ESP32:** Die CAN-Werkbank löst Vererbung und Kommentare auf, prüft das Profil gegen das Schema und schickt eine **kompakte Fassung** per Bluetooth an den ESP32. Der speichert sie im Flash. So muss die Firmware weder Vererbung noch JSON-Kommentare verstehen. Zum Profilwechsel muss nichts neu geflasht werden.
+**Profil auf den ESP32:** Die App löst Vererbung und Kommentare auf, prüft das Profil gegen das Schema und schickt eine **kompakte Fassung** per Bluetooth an den ESP32. Der speichert sie im Flash. So muss die Firmware weder Vererbung noch JSON-Kommentare verstehen. Zum Profilwechsel muss nichts neu geflasht werden.
 
 ---
 
@@ -261,8 +263,8 @@ Weil noch nicht am Auto geprüft ist, welche Werte der 208 wo liefert (Recherche
 
 1. **Mit `generic-obd2` starten.** Damit gibt es sofort Geschwindigkeit, Zündung, oft Tankfüllstand und manchmal Kilometerstand (PID `0xA6`, nur bei neueren Autos). Die App zeigt an, welche PIDs das Auto überhaupt unterstützt (PID `0x00`, `0x20`, … liefern das als Bitmaske).
 2. **Vorhandenes Wissen suchen.** Für viele Fahrzeuge gibt es offene Sammlungen von PIDs/DIDs und DBC-Dateien (z. B. aus Foren, OBD-App-Communities oder dem opendbc-Projekt). Die Werte werden als `draft` ins Profil übernommen.
-3. **Selbst ermitteln (Sniff-Modus).** Die CAN-Werkbank zeigt live jede CAN-ID mit ihren Bytes; geänderte Bytes leuchten auf, ein Bitraster zeigt, welche Bits sich je geändert haben. Der Leser fasst dafür alle Botschaften je ID zusammen und schickt nur die Übersicht per BLE (Kapitel 9). Für vollständige Rohmitschnitte kommt später ein WLAN-Modus mit dem **GVRET-Protokoll** dazu, sodass sich das Open-Source-Werkzeug **SavvyCAN** direkt verbinden kann. Damit beobachtet man gezielt Änderungen: Tanken, 1 km fahren, Tankanzeige vergleichen.
-4. **Prüfen.** Die CAN-Werkbank zeigt Live-Werte neben dem Rohwert an. Stimmt der Wert mit Tacho bzw. Bordcomputer überein, wird das Signal auf `verified: true` gesetzt.
+3. **Selbst ermitteln.** Heute am einfachsten im Auto Tracker: während der Fahrt einen Mitschnitt aufnehmen, Marken setzen und ihn mit Profil und Anleitung von einer KI auswerten lassen (Kapitel 9.3). Früher ging das von Hand in der Sniff-Ansicht: Die CAN-Werkbank zeigte live jede CAN-ID mit ihren Bytes; geänderte Bytes leuchteten auf, ein Bitraster zeigte, welche Bits sich je geändert haben. Der Leser fasst dafür alle Botschaften je ID zusammen und schickt nur die Übersicht per BLE (Kapitel 9). Für vollständige Rohmitschnitte kommt später ein WLAN-Modus mit dem **GVRET-Protokoll** dazu, sodass sich das Open-Source-Werkzeug **SavvyCAN** direkt verbinden kann. Damit beobachtet man gezielt Änderungen: Tanken, 1 km fahren, Tankanzeige vergleichen.
+4. **Prüfen.** Die App zeigt Live-Werte neben dem Rohwert an. Stimmt der Wert mit Tacho bzw. Bordcomputer überein, wird das Signal auf `verified: true` gesetzt.
 5. **Ins Repository.** Das Profil wird committet, die CI prüft es gegen das Schema.
 
 **Wichtiger Hinweis für neuere Autos wie den 208:** An der OBD-Buchse liegt bei vielen neueren Fahrzeugen nur noch ein Diagnose-Gateway. Dort ist dann kaum Broadcast-Verkehr zu sehen, und fast alles muss per Abfrage (`obd2_pid`, `uds_did`) gelesen werden. Manche Hersteller schränken auch die Diagnose am Gateway ein. Beim 208 übernimmt das Bordnetz-Steuergerät (BSI) diese Rolle. Wie viel davon an der OBD-Buchse ankommt, zeigt sich erst am Auto. Das Profilformat unterstützt beide Fälle, deshalb muss das Konzept dafür nicht geändert werden. Falls nötig, kann der Leser später auch direkt an einer internen CAN-Leitung hängen (eigener Bus im Profil).
@@ -294,8 +296,8 @@ Recherche zu OBD-Buchse und CAN-Daten des 208 I: [`FAHRZEUG-PEUGEOT-208.md`](FAH
 | CAN | TWAI-Treiber von ESP-IDF, alternativ MCP2515-Treiber, hinter gemeinsamer Schnittstelle |
 | Diagnose | Kleine ISO-TP-Implementierung (mehrteilige Antworten), OBD-II- und UDS-Abfragen |
 | Profil | Kompaktes Format im Flash (NVS oder eigene Partition), per BLE austauschbar |
-| Verbindung | **Bluetooth LE** (GATT-Dienst, [`CAN-BLE-PROTOKOLL.md`](CAN-BLE-PROTOKOLL.md)) zu Werkbank und weiteren Apps · **WLAN** später für Rohmitschnitte (GVRET/SavvyCAN) und Firmware-Updates |
-| Updates | OTA per WLAN oder über die CAN-Werkbank |
+| Verbindung | **Bluetooth LE** (GATT-Dienst, [`CAN-BLE-PROTOKOLL.md`](CAN-BLE-PROTOKOLL.md)) zu den Apps · **WLAN** später für Rohmitschnitte (GVRET/SavvyCAN) und Firmware-Updates |
+| Updates | im Browser über USB (Web-Flasher, `web/`), später OTA per WLAN oder über die App |
 | Tests | Dekodier- und Profil-Logik als plattformunabhängiger C++-Code mit Unit-Tests auf dem PC. Die CI braucht keine Hardware. |
 
 Ablauf im Betrieb: aufwachen → Profil laden → Signale abfragen/mithören → dekodieren → bei Änderung mit Zeitstempel in den Ringpuffer → sobald eine App per BLE verbunden ist, Puffer übertragen und quittieren lassen → nach Ruhe wieder schlafen.
@@ -306,11 +308,11 @@ Auch hier gilt der Grundsatz „nichts geht verloren“: Daten werden erst aus d
 
 ---
 
-## 9. CAN-Werkbank (App)
+## 9. App-Seite: Arbeitsprofil und Mitschnitt
 
-Eigene Flutter-App (`app/`), ein **Entwicklerwerkzeug**. Die BLE-Schnittstelle liegt im Paket **`packages/can_link`**, das auch andere Apps einbinden können.
+Ursprünglich für die CAN-Werkbank beschrieben (siehe Kapitel 1); der Auto Tracker nutzt dieselben Formate. Die BLE-Schnittstelle liegt im Paket **`packages/can_link`**, das auch andere Apps einbinden können.
 
-**Eine Schnittstelle für mehrere Apps:** Alle Apps sprechen dasselbe Protokoll mit dem Leser. Die Kopplung speichert Android für das ganze Handy, alle Apps nutzen sie also ohne erneute Eingabe. Gleichzeitig verbunden ist immer nur eine App. Die Werkbank braucht man beim Erstellen eines Profils; im Alltag kann eine andere App die Daten selbst abholen.
+**Eine Schnittstelle für mehrere Apps:** Alle Apps sprechen dasselbe Protokoll mit dem Leser. Die Kopplung speichert Android für das ganze Handy, alle Apps nutzen sie also ohne erneute Eingabe. Gleichzeitig verbunden ist immer nur eine App. Ist der Leser einmal gekoppelt (Code über den Web-Flasher oder die serielle Konsole), gilt das für alle Apps auf dem Handy.
 
 BLE-Bibliothek: `universal_ble` (BSD-Lizenz). `flutter_blue_plus` ist verbreiteter, verlangt aber seit Version 2 für kommerzielle Nutzung eine kostenpflichtige Lizenz und sendet beim Bauen Telemetrie.
 
@@ -337,7 +339,7 @@ BLE-Bibliothek: `universal_ble` (BSD-Lizenz). `flutter_blue_plus` ist verbreitet
 
 ### 9.1 Arbeitsprofil
 
-Zum Zuordnen braucht die Werkbank nur „welche Bits sind welches Signal“. Dafür nutzt sie ein schlankes JSON-Format (Code: `packages/can_link/lib/src/profile.dart`, Beispiel: `app/assets/profiles/peugeot_208_2016.profile.json`). Es ist bewusst kleiner als das Fahrzeugprofil aus Kapitel 4 und lässt sich später daraus erzeugen.
+Zum Zuordnen braucht die Werkbank nur „welche Bits sind welches Signal“. Dafür nutzt sie ein schlankes JSON-Format (Code: `packages/can_link/lib/src/profile.dart`, Beispiel: `packages/can_link/profiles/peugeot_208_2016_hs_can.json`). Es ist bewusst kleiner als das Fahrzeugprofil aus Kapitel 4 und lässt sich später daraus erzeugen.
 
 ```json
 {
@@ -412,7 +414,7 @@ eindeutig ist; offene Mittelungsfenster werden an der Lücke geschlossen.
 
 ```
 auto-tracker-can-bus/
-├── app/                         # Flutter: CAN-Werkbank (Android)
+├── web/                         # Web-Flasher: Firmware im Browser flashen, koppeln
 ├── packages/
 │   └── can_link/                # Dart: BLE-Protokoll, Profile, Simulation, Sampler
 │       └── profiles/            # Fahrzeugprofile (JSON)
@@ -425,8 +427,8 @@ auto-tracker-can-bus/
     └── FAHRZEUG-PEUGEOT-208.md
 ```
 
-- Pakete werden per Pfad eingebunden (`path: ../packages/can_link`).
-- **CI (GitHub Actions)** auf `ubuntu-latest` baut und testet nur, was sich geändert hat: `werkbank.yml` (Paket, App, ARM-APK), `firmware.yml` (Kern-Tests, Firmware). Später kommt die Profil-Prüfung gegen das Schema dazu.
+- Apps binden `can_link` per Pfad oder Git ein.
+- **CI (GitHub Actions)** auf `ubuntu-latest` baut und testet nur, was sich geändert hat: `link.yml` (Paket), `firmware.yml` (Kern-Tests, Firmware), `flasher.yml` (Web-Flasher; veröffentlicht ihn nach jedem Release auf GitHub Pages). Später kommt die Profil-Prüfung gegen das Schema dazu.
 
 ---
 
@@ -440,7 +442,7 @@ Da noch kein Auto da ist, ergibt sich eine natürliche Reihenfolge:
 | Firmware-Grundgerüst, Dekodier-Logik mit Unit-Tests | ja |
 | Prototyp (XIAO ESP32-C6 + CAN-Board) aufbauen, **Stufe 1 am Auto**: Ist an der Buchse Verkehr? | **nein**, braucht das Auto (Firmware vorhanden) |
 | Am **Schreibtisch testen** mit einem zweiten CAN-Knoten: zweiter XIAO ESP32-C6 mit eingebautem CAN-Controller und einem Transceiver-Modul (z. B. SN65HVD230) als Fahrzeug-Simulator | ja |
-| CAN-Werkbank: Koppeln, Sniff-Ansicht (vorhanden), Zuordnen, Profil übertragen | ja (mit Simulation) |
+| App: Koppeln, Sniff-Ansicht, Zuordnen (erst CAN-Werkbank, jetzt Auto Tracker mit Mitschnitt und KI) | ja (mit Simulation) |
 | Profil für den 208 ermitteln und prüfen | **nein**, braucht das Auto |
 | Fahrt-/Lade-/Tankerkennung abstimmen | **nein** |
 | Anbindung weiterer Apps über `can_link` | ja (mit Simulation) |

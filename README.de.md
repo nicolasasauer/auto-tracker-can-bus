@@ -2,11 +2,15 @@
 
 [English](README.md) · **Deutsch**
 
-Ein kleiner **CAN-Leser für die OBD-II-Buchse** und die Android-App
-**CAN-Werkbank**: CAN-Bus des Autos mithören, Botschaften live ansehen,
-Signale (Drehzahl, Tempo, Lenkwinkel …) den Bits zuordnen und daraus ein
-**Fahrzeugprofil** (JSON) machen. Ein erstes Profil für den Peugeot 208 I
+Ein kleiner **CAN-Leser für die OBD-II-Buchse** zur Android-App
+[**Auto Tracker**](https://play.google.com/store/apps/details?id=de.nicolasasauer.auto_tracker).
+Der Leser hört den CAN-Bus des Autos mit und schickt die Werte per Bluetooth
+an die App: Tempo, Drehzahl, Gang, Verbrauch, Kilometerstand und mehr, je
+nach **Fahrzeugprofil** (JSON). Ein erstes Profil für den Peugeot 208 I
 (2016) liegt bei.
+
+Hier liegen Bauanleitung, Firmware und Fahrzeugprofile. Die Firmware lässt
+sich **direkt im Browser flashen**, ohne Zusatzprogramme.
 
 > **Nur mithören. Nutzung auf eigene Gefahr, ohne jede Gewähr.**
 > Der CAN-Controller läuft im Listen-Only-Modus und sendet nichts auf den
@@ -19,48 +23,27 @@ Signale (Drehzahl, Tempo, Lenkwinkel …) den Bits zuordnen und daraus ein
 
 ## Quickstart
 
-1. **Hardware:** XIAO ESP32-C6 auf das XIAO CAN Bus Expansion Board stecken.
-   OBD-Kabel an die Klemme: Pin 6 → CAN-H, Pin 14 → CAN-L, Pin 4/5 → GND.
-   Pin 16 (+12 V) **nicht** anschließen, der Leser läuft über USB.
-2. **Firmware flashen:** `pip install platformio`, dann
-   `cd firmware && pio run -t upload`.
-3. **App installieren:** APK aus den [Releases](../../releases) aufs Handy.
-4. **Koppeln:** Leser am PC, `pio device monitor`, `pair` eingeben. In der App
-   „CAN-Leser suchen“ und den 6-stelligen Code eingeben.
-5. **Mithören:** Zündung an. Die App zeigt jede CAN-ID mit ihren Bytes.
-   Eine ID antippen und Bits markieren, um ein Signal anzulegen.
-6. **Von der KI auswerten lassen:** In der Sniff-Ansicht aufnehmen (roter
-   Punkt), dabei Marken setzen („Blinker links“). Unter „Mitschnitte“ →
-   **„Für KI-Analyse teilen“** gehen Mitschnitt, Profil und eine Anleitung an
-   die KI deiner Wahl. Ihre Antwort ist ein Profil: in der App über die
-   Zwischenablage importieren und am Auto prüfen. Achtung: Ein Mitschnitt kann
-   die Fahrgestellnummer enthalten (manche Autos senden sie im Klartext).
-
-Ohne Hardware: in der App **„Simulation starten“**.
-
-<table>
-  <tr>
-    <td><img src="docs/screenshots/sniff.png" width="200" alt="Sniff-Ansicht"></td>
-    <td><img src="docs/screenshots/bitraster.png" width="200" alt="Bits zuordnen"></td>
-    <td><img src="docs/screenshots/signal.png" width="200" alt="Signal mit Verlauf"></td>
-    <td><img src="docs/screenshots/ki-teilen.png" width="200" alt="Mitschnitt für die KI teilen"></td>
-  </tr>
-  <tr>
-    <td>Sniff-Ansicht</td>
-    <td>Bits zuordnen</td>
-    <td>Signal mit Verlauf</td>
-    <td>Mitschnitt für die KI teilen</td>
-  </tr>
-</table>
-
-Die Bilder zeigen die eingebaute Simulation (erfundene Botschaften).
+1. **Teile besorgen und zusammenstecken:** siehe [Hardware](#hardware).
+2. **Firmware flashen:** Leser per USB-C an den Computer, den
+   [**Web-Flasher**](https://nicolasasauer.github.io/auto-tracker-can-bus/)
+   in Chrome oder Edge öffnen und „Installieren“ klicken.
+3. **Koppeln:** Auf derselben Seite „Kopplungscode holen“. Im Auto Tracker
+   *Einstellungen → CAN-Leser (Beta)* einschalten, *CAN-Leser (OBD)* öffnen,
+   „CAN-Leser suchen“, den Leser antippen und den Code eingeben.
+4. **Ins Auto:** OBD-Kabel an die Klemme (Pin 6 → CAN-H, Pin 14 → CAN-L,
+   Pin 4/5 → GND, Pin 16 **nicht**), siehe
+   [Anschluss](#anschluss-an-die-obd-buchse). Zündung an: Die App zeigt die
+   Werte live.
+5. **Für ein Fahrzeug hinterlegen:** In *CAN-Leser (OBD)* den Leser einem
+   Fahrzeug zuordnen. Während einer Fahrt verbindet sich die App dann selbst
+   und speichert die Werte zur Fahrt.
 
 ## Inhalt
 
 | Ordner | Inhalt |
 |---|---|
 | [`firmware/`](firmware/) | Firmware für den Leser (PlatformIO, C++). Kern in `lib/can_core`, auf dem PC getestet. |
-| [`app/`](app/) | CAN-Werkbank, Android-App (Flutter) |
+| [`web/`](web/) | Web-Flasher: Firmware im Browser installieren und koppeln ([Seite](https://nicolasasauer.github.io/auto-tracker-can-bus/)) |
 | [`packages/can_link/`](packages/can_link/) | Dart-Paket: BLE-Protokoll, Profile, Simulation. In [`profiles/`](packages/can_link/profiles/) die Fahrzeugprofile. |
 | [`docs/`](docs/) | [Konzept](docs/CAN-KONZEPT.md), [BLE-Protokoll](docs/CAN-BLE-PROTOKOLL.md), [Recherche Peugeot 208](docs/FAHRZEUG-PEUGEOT-208.md) |
 
@@ -71,7 +54,7 @@ Die Bilder zeigen die eingebaute Simulation (erfundene Botschaften).
 | **Seeed Studio XIAO ESP32-C6** | Mikrocontroller mit Bluetooth LE |
 | **Seeed „XIAO CAN Bus Expansion Board“** | CAN-Controller MCP2515 (SPI, Quarz 16 MHz) und Transceiver SN65HVD230, Schraubklemme GND / CAN-H / CAN-L |
 | **OBD-II-Kabel mit offenen Adern** | Stecker für die Buchse im Auto |
-| USB-C-Kabel, Laptop | zum Flashen und zur Versorgung beim ersten Test |
+| USB-C-Kabel, Computer | zum Flashen und Koppeln; Laptop auf Akku auch zur Versorgung beim ersten Test |
 
 Den XIAO auf das CAN-Board stecken. Pins (siehe `firmware/include/config.h`):
 SPI SCK/MISO/MOSI = D8/D9/D10, Chip-Select des MCP2515 = **D7**
@@ -95,23 +78,34 @@ Stimmt er nicht, fragt die Firmware jede Millisekunde ab und meldet das unter
    abgeschlossen. Nur für einen Testbus am Schreibtisch P1 schließen.
    Gegenprobe ohne Auto: zwischen CAN-H und CAN-L an der Klemme kein
    Durchgang statt 120 Ω.
-3. **Versorgung über USB.** Den XIAO per USB vom Laptop versorgen, der dabei
-   auf Akku läuft. Das CAN-Board hat **keinen 12-V-Eingang**. Pin 16 erst
-   anschließen, wenn ein eigener Spannungsregler mit Schutzbeschaltung
+3. **Versorgung über USB.** Den XIAO per USB versorgen (Laptop auf Akku oder
+   USB-Netzteil im Auto). Das CAN-Board hat **keinen 12-V-Eingang**. Pin 16
+   erst anschließen, wenn ein eigener Spannungsregler mit Schutzbeschaltung
    dazwischen sitzt (Sicherung, Verpolschutz, TVS-Diode, Regler für
    Eingänge bis 40 V; das Bordnetz hat Einbrüche beim Start und Spitzen,
    siehe [Konzept, Kapitel 7](docs/CAN-KONZEPT.md#7-hardware)).
-4. Zündung an, Konsole öffnen (siehe unten) und `status` eingeben. „still“
-   heißt, an der Buchse kommt ohne Anfrage nichts an. Das ist bei vielen
-   neueren Autos normal, weil ein Gateway vor der Buchse sitzt.
+4. Zündung an. Zeigt die App keine Werte: Im Web-Flasher „Kopplungscode
+   holen“ und dann „Zustand anzeigen“ (oder auf der Konsole `status`).
+   „still“ heißt, an der Buchse kommt ohne Anfrage nichts an. Das ist bei
+   vielen neueren Autos normal, weil ein Gateway vor der Buchse sitzt.
 
-Mehr zu Aufbau, Konsole und bekannten Grenzen: [`firmware/README.md`](firmware/README.md)
-(auf Deutsch).
+Mehr zu Aufbau, Konsole und bekannten Grenzen: [`firmware/README.md`](firmware/README.md).
 
-## Firmware bauen und flashen
+## Firmware flashen
 
-Mit [PlatformIO](https://platformio.org/) (Kommandozeile oder die Erweiterung
-für VS Code). Die Plattform „pioarduino“ (Arduino-ESP32 3.x) und die
+**Im Browser (empfohlen):** [Web-Flasher](https://nicolasasauer.github.io/auto-tracker-can-bus/)
+in Chrome oder Edge am Computer (Windows, macOS, Linux) öffnen, Leser per
+USB-C anschließen, „Installieren“. Die Seite nimmt immer die Firmware des
+neuesten Releases. Beim ersten Mal das Löschen bestätigen; bei einem Update
+nicht löschen, dann bleibt die Kopplung erhalten. Handy, Firefox und Safari
+können nicht auf USB-Geräte zugreifen.
+
+**Mit esptool:** `can-logger-xiao-esp32c6-factory.bin` aus den
+[Releases](../../releases) laden und
+`esptool.py --chip esp32c6 write_flash 0x0 can-logger-xiao-esp32c6-factory.bin`.
+
+**Selbst bauen** mit [PlatformIO](https://platformio.org/) (Kommandozeile
+oder die Erweiterung für VS Code). Die Plattform „pioarduino“ und die
 Bibliotheken lädt PlatformIO beim ersten Bau selbst.
 
 ```bash
@@ -120,9 +114,6 @@ cd firmware
 pio run -t upload          # bauen und über USB flashen
 pio device monitor         # serielle Konsole, 115200 Baud
 ```
-
-Fertige Firmware (`can-logger-xiao-esp32c6.bin`) liegt auch unter
-[Releases](../../releases).
 
 Kern-Tests ohne Hardware (nur ein C++-Compiler nötig):
 
@@ -134,57 +125,39 @@ bash tool/check.sh firmware
 
 Der Leser spricht nur mit **gekoppelten** Handys. Die Verbindung ist
 verschlüsselt (LE Secure Connections mit Passkey). Neue Handys lassen sich
-nur koppeln, solange der Leser per USB am PC hängt:
+nur koppeln, solange der Leser per USB am Computer hängt:
 
-1. Leser per USB an den PC, Konsole öffnen (`pio device monitor`).
-2. `pair` eingeben. Die Konsole zeigt einen zufälligen **6-stelligen Code**.
-   Das Kopplungsfenster bleibt 2 Minuten offen.
-3. In der CAN-Werkbank „CAN-Leser suchen“, verbinden und im
-   Kopplungsdialog von Android den Code eingeben.
+1. Leser per USB an den Computer, im
+   [Web-Flasher](https://nicolasasauer.github.io/auto-tracker-can-bus/)
+   „Kopplungscode holen“. Alternativ eine serielle Konsole öffnen
+   (`pio device monitor`, 115200 Baud) und `pair` eingeben. Es erscheint ein
+   zufälliger **6-stelliger Code**; das Kopplungsfenster bleibt 2 Minuten
+   offen.
+2. Im Auto Tracker unter *CAN-Leser (OBD)* „CAN-Leser suchen“, den Leser
+   antippen und im Kopplungsdialog von Android den Code eingeben.
 
 Danach verbindet sich das Handy ohne erneute Eingabe. Höchstens 3 Handys;
 `unpair` auf der Konsole löscht alle. Einzelheiten:
 [BLE-Protokoll, Kapitel 4](docs/CAN-BLE-PROTOKOLL.md#4-koppeln-und-sicherheit).
 
-## CAN-Werkbank
+## Im Auto Tracker
 
-**Installieren:** Die APK (arm64, für aktuelle Android-Handys) liegt unter
-[Releases](../../releases). Herunterladen und installieren (Installation aus
-unbekannten Quellen erlauben). Die App fragt nach den Bluetooth-Rechten.
+Der CAN-Leser ist im Auto Tracker als **Beta** für alle freigeschaltet:
+*Einstellungen → CAN-Leser (Beta)* oder auf der Fahrzeugseite im Menü ⋮.
+Dort:
 
-**Selbst bauen** (Flutter 3.47.6, stable):
-
-```bash
-cd app
-flutter pub get
-flutter build apk --release --target-platform android-arm64
-```
-
-Ohne eigenen Schlüssel signiert Gradle mit dem Debug-Schlüssel. Für den
-eigenen Gebrauch reicht das. Die APKs unter „Releases“ tragen eine andere
-Signatur und lassen sich deshalb nicht darüber installieren.
-
-**Arbeiten mit der Werkbank:**
-
-1. **Mithören:** Leser verbinden (oder „Simulation“ ohne Hardware). Die
-   Sniff-Ansicht zeigt jede CAN-ID mit Bytes, Takt und Anzahl; geänderte
-   Bytes leuchten auf. Genormte OBD-Anfragen und -Antworten erscheinen gleich
-   mit Namen und Einheit.
-2. **Signale zuordnen:** Eine CAN-ID antippen und im Bitraster die Bits eines
-   Signals markieren, Faktor und Offset einstellen. „Faktor aus Sollwert“
-   rechnet den Faktor aus dem Wert, den Tacho oder Bordcomputer gerade
-   zeigen. Signale anpinnen und den Verlauf als Graph beobachten.
-3. **Mitschnitt:** roter Punkt in der Sniff-Ansicht, dabei Marken setzen
-   („Blinker links“). Später abspielen oder als Paket für eine KI-Analyse
-   teilen.
-4. **Profil exportieren:** Auf der Profil-Seite teilen oder als Datei
-   speichern; importieren geht aus Datei oder Zwischenablage.
-
-Beispielprofile im Menü der Profil-Seite: Peugeot 208 (2016) und Simulation.
+- **Live-Werte** nach dem Fahrzeugprofil, Dashboard während der Fahrt
+- **Fahrten mit CAN-Daten:** Verbrauch, Gang, Steigung, Kilometerstand
+- **Mitschnitt** aller Botschaften, z. B. um ein neues Signal zu finden;
+  „Für KI-Analyse teilen“ schickt Mitschnitt, Profil und eine Anleitung an
+  die KI deiner Wahl. Ihre Antwort ist ein Profil, das sich in der App
+  importieren und am Auto prüfen lässt. Achtung: Ein Mitschnitt kann die
+  Fahrgestellnummer enthalten; die App bietet an, sie zu entfernen.
+- **Profil** ansehen, bearbeiten, kopieren und importieren
 
 ## Eigene Profile beitragen
 
-Profile sind JSON-Dateien im Format der Werkbank
+Profile sind JSON-Dateien im Arbeitsprofil-Format
 ([Konzept, Kapitel 9.1](docs/CAN-KONZEPT.md#91-arbeitsprofil); Code:
 `packages/can_link/lib/src/profile.dart`):
 
@@ -216,7 +189,8 @@ Profile sind JSON-Dateien im Format der Werkbank
 
 So geht's:
 
-1. Profil in der Werkbank erstellen und exportieren.
+1. Profil im Auto Tracker erstellen (Mitschnitt und KI, siehe oben), am Auto
+   prüfen und auf der Profilseite kopieren.
 2. Als `packages/can_link/profiles/<marke>_<modell>_<baujahr>_<bus>.json`
    ablegen und einen Pull Request öffnen. Im PR das Fahrzeug nennen
    (Modell, Baujahr, Motor) und wie die Signale geprüft wurden.
@@ -225,23 +199,28 @@ So geht's:
    keine echten Mitschnitte, keine Kilometerstände, Orte oder Uhrzeiten
    in den Notizen.
 
+## Frühere CAN-Werkbank
+
+Bis v1.0.2 lag hier auch die Begleit-App **CAN-Werkbank** (Sniff-Ansicht,
+Bits von Hand zuordnen, Simulation). Ihre Alltagsfunktionen stecken jetzt im
+Auto Tracker, deshalb wird sie hier nicht mehr weiterentwickelt. Die alten
+APKs stehen weiter unter [Releases](../../releases), der Quelltext in der
+Git-Historie (Tag `v1.0.2`).
+
 ## Lizenz
 
 Dieses Projekt steht unter der [MIT-Lizenz](LICENSE).
 
-Verwendete Abhängigkeiten und ihre Lizenzen (geprüft für die Versionen in
-`platformio.ini` und `app/pubspec.lock`):
+Verwendete Abhängigkeiten und ihre Lizenzen:
 
 | Abhängigkeit | Lizenz |
 |---|---|
 | [NimBLE-Arduino](https://github.com/h2zero/NimBLE-Arduino) (BLE in der Firmware) | Apache-2.0 |
 | [autowp-mcp2515](https://github.com/autowp/arduino-mcp2515) (MCP2515-Treiber) | MIT |
 | [Arduino-ESP32](https://github.com/espressif/arduino-esp32) (Kern, über die Plattform [pioarduino](https://github.com/pioarduino/platform-espressif32)) | LGPL-2.1, ESP-IDF darunter Apache-2.0 |
-| Flutter, Dart SDK | BSD-3-Clause |
-| [universal_ble](https://pub.dev/packages/universal_ble) (Bluetooth LE in der App) | BSD-3-Clause |
-| [file_picker](https://pub.dev/packages/file_picker) | MIT |
-| [path_provider](https://pub.dev/packages/path_provider), [share_plus](https://pub.dev/packages/share_plus) | BSD-3-Clause |
+| [ESP Web Tools](https://github.com/esphome/esp-web-tools) (Web-Flasher) | Apache-2.0 |
+| Flutter, Dart SDK (`can_link`) | BSD-3-Clause |
+| [universal_ble](https://pub.dev/packages/universal_ble) (Bluetooth LE in `can_link`) | BSD-3-Clause |
 | [clock](https://pub.dev/packages/clock) | Apache-2.0 |
-| übrige indirekte Dart-Pakete | überwiegend BSD-3-Clause oder MIT; `material_color_utilities` Apache-2.0; `bluez` und `dbus` (nur Linux, über `universal_ble`) MPL-2.0 |
 
 Die Lizenztexte liegen den jeweiligen Paketen bei.

@@ -14,12 +14,12 @@ keinen Code zum Senden.
 - Alle Botschaften am OBD-Bus (500 kbit/s) lesen und **je CAN-ID
   zusammenfassen**: letzte Daten, geänderte Bits, Anzahl, Takt
 - Die Übersicht alle 200 ms per **Bluetooth LE** an ein gekoppeltes Handy
-  schicken (CAN-Werkbank)
+  schicken (App Auto Tracker)
 - Filter für CAN-IDs, von der App aus einstellbar
-- **Koppeln nur mit USB am PC:** Code auf der seriellen Konsole
+- **Koppeln nur mit USB am PC:** Code im Web-Flasher oder auf der seriellen Konsole
 - **Diagnose** jede Sekunde: Buslast (aktuell, Mittel 10 s, Spitze),
   Empfangsfehler, Höchststand des Zwischenpuffers, Grund des letzten
-  Neustarts und Zahl der Starts (die Werkbank zeigt sie unter „Diagnose“)
+  Neustarts und Zahl der Starts (auch auf der Konsole unter `status`)
 - LED leuchtet, solange Botschaften kommen
 
 ## Aufbau und erster Test
@@ -46,7 +46,7 @@ keinen Code zum Senden.
    - „still“: Es kommen keine Botschaften. Beim 208 I gut möglich, weil das
      BSI als Gateway vor der Buchse sitzt. Zündung an und Motor laufen lassen
      und erneut prüfen.
-   - „Botschaften kommen“: Die LED leuchtet, die Werkbank zeigt die IDs.
+   - „Botschaften kommen“: Die LED leuchtet, die App zeigt die Werte.
    - **Empfangsfehler > 0** bei wenig Verkehr: falsche Bitrate, CAN-H und
      CAN-L vertauscht oder ein Abschlusswiderstand zu viel.
    - **Buslast:** Bis etwa 50 % reicht der MCP2515; darüber wird es mit
@@ -57,7 +57,14 @@ keinen Code zum Senden.
 
 ## Bauen und flashen
 
-Mit [PlatformIO](https://platformio.org/) (Kommandozeile oder die
+**Ohne Bauen, im Browser:** Den Web-Flasher unter
+<https://nicolasasauer.github.io/auto-tracker-can-bus/> in Chrome oder Edge am
+Computer öffnen und „Installieren“ klicken. Er nimmt die Firmware des
+neuesten Releases (Quelltext der Seite: [`web/`](../web/)). Wer lieber die
+Kommandozeile nimmt: `can-logger-xiao-esp32c6-factory.bin` aus den Releases
+mit `esptool.py --chip esp32c6 write_flash 0x0 <datei>` flashen.
+
+**Selbst bauen** mit [PlatformIO](https://platformio.org/) (Kommandozeile oder die
 Erweiterung für VS Code):
 
 ```bash
@@ -68,7 +75,9 @@ pio device monitor         # serielle Konsole
 
 Die Plattform „pioarduino“ (Arduino-ESP32 3.x) und die Bibliotheken lädt
 PlatformIO beim ersten Bau selbst. Die CI baut die Firmware bei jedem PR
-(`.github/workflows/firmware.yml`) und hängt sie als Artefakt an.
+(`.github/workflows/firmware.yml`) und hängt sie als Artefakt an. Neben
+`firmware.bin` (App ab 0x10000) legt die Plattform `firmware.factory.bin` an:
+Bootloader, Partitionen und App in einer Datei ab Adresse 0, für den Web-Flasher.
 
 ## Serielle Konsole
 
@@ -78,8 +87,9 @@ PlatformIO beim ersten Bau selbst. Die CI baut die Firmware bei jedem PR
 | `pair` | Kopplungsfenster für 2 Minuten öffnen und den Code anzeigen |
 | `unpair` | alle gekoppelten Handys löschen |
 
-**Handy koppeln:** Leser per USB an den PC, `pair` eingeben, in der
-CAN-Werkbank „CAN-Leser suchen“ und verbinden, den angezeigten 6-stelligen
+**Handy koppeln:** Leser per USB an den PC und im Web-Flasher
+„Kopplungscode holen“ klicken (oder in einer Konsole `pair` eingeben). Dann im
+Auto Tracker „CAN-Leser suchen“ und verbinden, den angezeigten 6-stelligen
 Code im Kopplungsdialog von Android eingeben. Ohne offenes Fenster lehnt der
 Leser neue Handys ab. Höchstens 3 Handys.
 

@@ -198,7 +198,7 @@ void handleLine(const char* line, uint32_t now) {
     const uint32_t code = g_pairing.open(now, esp_random());
     Serial.printf("Kopplungsfenster offen (2 Minuten). Code: %06lu\n",
                   static_cast<unsigned long>(code));
-    Serial.println("Am Handy in der CAN-Werkbank verbinden und den Code eingeben.");
+    Serial.println("Am Handy in der App verbinden und den Code eingeben.");
   } else if (strcmp(line, "unpair") == 0) {
     ble_link::deleteAllBonds();
     g_pairing.close();

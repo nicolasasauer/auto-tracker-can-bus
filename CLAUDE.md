@@ -1,27 +1,29 @@
 # Hinweise für Claude
 
 ## Projekt
-CAN-Leser am OBD-Stecker (Seeed XIAO ESP32-C6 + XIAO CAN Bus Expansion Board, MCP2515) und die
-Android-App **CAN-Werkbank** (Flutter): CAN-Bus mithören, Signale zuordnen, Fahrzeugprofile erstellen.
-Öffentliches Repository, Lizenz MIT.
+CAN-Leser am OBD-Stecker (Seeed XIAO ESP32-C6 + XIAO CAN Bus Expansion Board, MCP2515) für die App
+**Auto Tracker** (Play Store): Bauanleitung, Firmware, Web-Flasher, Fahrzeugprofile.
+Öffentliches Repository, Lizenz MIT. Die frühere Begleit-App CAN-Werkbank (`app/`) ist entfernt; alte APKs
+und Releases bleiben stehen, die Git-Historie wird nicht umgeschrieben.
 Sprache von UI, Doku, Kommentaren und Commits: Deutsch. Nur `README.md` zusätzlich auf Englisch
 (`README.de.md` auf Deutsch, beide zusammen ändern).
 
 ## Aufbau
-- `app/` – CAN-Werkbank (Flutter, nur Android). Eigene `CLAUDE.md`.
 - `packages/can_link/` – Dart-Paket: BLE-Protokoll, Profile, Simulation, Sampler. `profiles/` = Fahrzeugprofile (JSON).
 - `firmware/` – Firmware (PlatformIO, C++). Der Kern `lib/can_core` läuft auch auf dem PC. Eigene `CLAUDE.md`.
+- `web/` – Web-Flasher (GitHub Pages): ESP Web Tools zum Flashen, eigene Web-Serial-Konsole zum Koppeln.
+  Logik ohne Browser in `serial_console.js` (Tests: `node --test`). Erkennt Ausgaben der Firmware
+  (`main.cpp`: „Kopplungsfenster offen … Code:“, Startgruß): bei Textänderungen dort beides anpassen.
 - `docs/` – `CAN-KONZEPT.md` (Profilformat Kapitel 3, 4, 9.1), `CAN-BLE-PROTOKOLL.md`, `FAHRZEUG-PEUGEOT-208.md`.
   Erst die Überschriften suchen (`^#`), dann nur das Kapitel lesen.
-- `.github/workflows/` – `werkbank.yml`, `firmware.yml`, `release.yml`.
+- `.github/workflows/` – `link.yml`, `firmware.yml`, `release.yml` (Firmware), `flasher.yml` (Pages nach jedem Release).
 
 ## Befehle
-    bash tool/check.sh werkbank                      # Werkbank: Analyse + Tests
-    bash tool/check.sh werkbank test/foo_test.dart   # nur diese Tests
-    bash tool/check.sh link                          # can_link
+    bash tool/check.sh link                          # can_link: Analyse + Tests
+    bash tool/check.sh link test/foo_test.dart       # nur diese Tests
     bash tool/check.sh firmware                      # Kern-Tests der Firmware (nur C++-Compiler nötig)
+    bash tool/check.sh flasher                       # Tests des Web-Flashers (Node)
     bash tool/check.sh alle
-    bash tool/check.sh screenshots                   # README-Bilder neu (nur Simulation), dann einchecken
     cd firmware && pio run -e xiao_esp32c6 -s        # Firmware bauen
 
 - `flutter test` nie ohne `--reporter failures-only`.
@@ -40,9 +42,11 @@ Sprache von UI, Doku, Kommentaren und Commits: Deutsch. Nur `README.md` zusätzl
 - `release.yml` läuft im Environment **`release`** (Settings → Environments):
   - Deployment branches and tags: nur Tags `v*`.
   - Required reviewers: der Besitzer (Freigabe jedes Laufs); „Allow administrators to bypass“ aus.
-  - Secrets nur dort, nicht als Repo-Secrets: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`,
-    optional `KEY_PASSWORD`.
-- Fremde Actions in `release.yml` sind auf Commit-SHAs festgelegt. Beim Aktualisieren SHA und
+  - Secrets braucht es keine mehr (keine APK).
+- Assets: `can-logger-xiao-esp32c6.bin` (App ab 0x10000) und `…-factory.bin` (alles ab 0x0, von
+  pioarduino als `firmware.factory.bin` erzeugt). Danach veröffentlicht `flasher.yml` die Seite mit dem
+  neuesten Release (ohne Vorabversionen). Einmalig: Settings → Pages → Source „GitHub Actions“.
+- Fremde Actions in `release.yml` und `flasher.yml` sind auf Commit-SHAs festgelegt. Beim Aktualisieren SHA und
   Versionskommentar zusammen ändern (`git ls-remote --tags https://github.com/<owner>/<action>.git`).
 
 ## No-Gos
@@ -55,8 +59,9 @@ Sprache von UI, Doku, Kommentaren und Commits: Deutsch. Nur `README.md` zusätzl
 - **Auch PR-Beschreibungen, Kommentare, Commit-Nachrichten und Branch-Namen sind öffentlich.** Darin
   nichts Privates: keine entfernten Werte zitieren (etwa „Kilometerstand X entfernt“), keine Verweise auf
   private Repos, Apps, Rechner oder Schlüssel. Fragen und Prüfpunkte für den Besitzer gehören in den Chat.
-- Keine Signaturschlüssel oder Passwörter einchecken. Release-APKs nur mit dem Schlüssel aus den
-  Repo-Secrets; ohne Schlüssel bricht `release.yml` ab. Das nicht umgehen.
+- Keine Signaturschlüssel oder Passwörter einchecken.
+- Der Web-Flasher lädt nichts von fremden Servern: ESP Web Tools liegt mit fester Version und Prüfsumme
+  auf der Seite (`flasher.yml`), kein CDN, keine Analyse-Skripte.
 - **Keine eigenen Runner (`self-hosted`)**: Das Repository ist öffentlich, fremde PRs könnten Code darauf
   ausführen. Workflows laufen auf `ubuntu-latest`; keine Secrets in `pull_request`-Workflows,
   kein `pull_request_target`.
