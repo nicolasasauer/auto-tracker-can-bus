@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CAN-Leser einrichten</title>
+  <meta name="description" content="Firmware für den CAN-Leser des Auto Trackers im Browser installieren und mit dem Handy koppeln.">
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --card: #ffffff;
+      --text: #1b1f24;
+      --muted: #5b6470;
+      --line: #dde1e6;
+      --accent: #1f6feb;
+      --accent-text: #ffffff;
+      --warn-bg: #fff6e0;
+      --warn-line: #e8c46a;
+      --code-bg: #eef1f5;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1216;
+        --card: #171b21;
+        --text: #e6e9ed;
+        --muted: #9aa4af;
+        --line: #2a3139;
+        --accent: #4c8dff;
+        --accent-text: #0b0e12;
+        --warn-bg: #2b2412;
+        --warn-line: #7a6326;
+        --code-bg: #1f252d;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    main { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+    header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+    h1 { font-size: 1.6rem; margin: 0 0 4px; }
+    h2 { font-size: 1.15rem; margin: 0 0 8px; }
+    p { margin: 0 0 12px; }
+    .lead { color: var(--muted); margin-bottom: 20px; }
+    .lang { color: var(--muted); font-size: .9rem; white-space: nowrap; }
+    .lang button {
+      background: none; border: 0; padding: 0 2px; color: var(--accent);
+      font: inherit; cursor: pointer;
+    }
+    .lang button[aria-pressed="true"] { color: var(--text); font-weight: 600; cursor: default; }
+    section.card {
+      background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+      padding: 18px 18px 14px; margin-bottom: 16px;
+    }
+    .step { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; }
+    .warn {
+      background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 12px;
+      padding: 12px 14px; margin-bottom: 16px; font-size: .95rem;
+    }
+    ol { margin: 0 0 12px; padding-left: 1.3em; }
+    li { margin-bottom: 4px; }
+    code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: .92em; }
+    button.primary, esp-web-install-button button {
+      background: var(--accent); color: var(--accent-text); border: 0; border-radius: 8px;
+      padding: 10px 18px; font: inherit; font-weight: 600; cursor: pointer;
+    }
+    button.secondary {
+      background: none; color: var(--accent); border: 1px solid var(--line); border-radius: 8px;
+      padding: 8px 14px; font: inherit; cursor: pointer;
+    }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 12px; }
+    .muted { color: var(--muted); font-size: .92rem; }
+    #pair-code-box {
+      text-align: center; border: 2px solid var(--accent); border-radius: 12px;
+      padding: 12px; margin: 8px 0 12px;
+    }
+    #pair-code { font: 700 2.4rem/1.2 ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: .08em; }
+    #pair-log {
+      background: var(--code-bg); border-radius: 8px; padding: 8px 10px; margin: 0;
+      height: 180px; overflow: auto; font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    details summary { cursor: pointer; color: var(--muted); font-size: .92rem; margin-bottom: 6px; }
+    footer { color: var(--muted); font-size: .85rem; margin-top: 24px; }
+    a { color: var(--accent); }
+    [data-lang] { display: none; }
+    html[lang="de"] [data-lang="de"], html[lang="en"] [data-lang="en"] { display: revert; }
+  </style>
+  <script type="module" src="esp-web-tools/install-button.js"></script>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1><span data-lang="de">CAN-Leser einrichten</span><span data-lang="en">Set up the CAN reader</span></h1>
+    </div>
+    <div class="lang">
+      <button type="button" data-set-lang="de">DE</button> · <button type="button" data-set-lang="en">EN</button>
+    </div>
+  </header>
+  <p class="lead">
+    <span data-lang="de">Firmware für den CAN-Leser am OBD-Stecker installieren und den Leser mit der App <a href="https://play.google.com/store/apps/details?id=de.nicolasasauer.auto_tracker">Auto Tracker</a> koppeln. Alles läuft hier im Browser, ohne Zusatzprogramme.</span>
+    <span data-lang="en">Install the firmware for the CAN reader on the OBD port and pair it with the <a href="https://play.google.com/store/apps/details?id=de.nicolasasauer.auto_tracker">Auto Tracker</a> app. Everything runs here in the browser, no extra software needed.</span>
+  </p>
+
+  <div class="warn">
+    <span data-lang="de"><strong>Nur mithören, Nutzung auf eigene Gefahr.</strong> Der Leser sendet nichts auf den CAN-Bus. Trotzdem ohne Gewähr, siehe <a href="https://github.com/nicolasasauer/auto-tracker-can-bus/blob/main/README.de.md">README</a>. Zum Flashen den Leser <strong>nicht</strong> am Auto lassen, nur per USB am Computer.</span>
+    <span data-lang="en"><strong>Listen only, use at your own risk.</strong> The reader sends nothing on the CAN bus. Still without warranty, see the <a href="https://github.com/nicolasasauer/auto-tracker-can-bus">README</a>. Do <strong>not</strong> keep the reader in the car while flashing; connect it to the computer via USB only.</span>
+  </div>
+
+  <p class="muted" id="unsupported" hidden>
+    <span data-lang="de">Dieser Browser kann nicht auf USB-Geräte zugreifen. Bitte Chrome oder Edge am Computer (Windows, macOS, Linux) verwenden. Handy, Firefox und Safari gehen nicht.</span>
+    <span data-lang="en">This browser cannot access USB devices. Please use Chrome or Edge on a computer (Windows, macOS, Linux). Phones, Firefox and Safari do not work.</span>
+  </p>
+
+  <section class="card">
+    <div class="step"><span data-lang="de">Schritt 1</span><span data-lang="en">Step 1</span></div>
+    <h2><span data-lang="de">Firmware installieren</span><span data-lang="en">Install the firmware</span></h2>
+    <ol>
+      <li><span data-lang="de">XIAO ESP32-C6 per USB-C an den Computer anschließen.</span><span data-lang="en">Connect the XIAO ESP32-C6 to the computer via USB-C.</span></li>
+      <li><span data-lang="de">Auf „Installieren“ klicken und den Eintrag <code>USB JTAG/serial debug unit</code> (oder ähnlich) wählen.</span><span data-lang="en">Click “Install” and pick <code>USB JTAG/serial debug unit</code> (or similar).</span></li>
+      <li><span data-lang="de">Beim ersten Mal das Löschen des Geräts („Erase device“) bestätigen. Bei einem Update nicht löschen, dann bleibt die Kopplung erhalten.</span><span data-lang="en">The first time, confirm “Erase device”. For an update, don’t erase; the pairing is kept.</span></li>
+    </ol>
+    <div class="row">
+      <esp-web-install-button manifest="manifest.json">
+        <button slot="activate" class="primary"><span data-lang="de">Installieren</span><span data-lang="en">Install</span></button>
+        <span slot="unsupported" class="muted"><span data-lang="de">Nur in Chrome oder Edge am Computer.</span><span data-lang="en">Chrome or Edge on a computer only.</span></span>
+        <span slot="not-allowed" class="muted"><span data-lang="de">Nur über HTTPS möglich.</span><span data-lang="en">Only possible over HTTPS.</span></span>
+      </esp-web-install-button>
+      <span class="muted" id="fw-version"></span>
+    </div>
+    <details>
+      <summary><span data-lang="de">Findet der Browser den Leser nicht?</span><span data-lang="en">Browser does not find the reader?</span></summary>
+      <p class="muted">
+        <span data-lang="de">Anderes USB-Kabel probieren (manche laden nur). Sonst den Taster <code>BOOT</code> gedrückt halten, kurz <code>RESET</code> drücken, <code>BOOT</code> loslassen und erneut installieren. Nach dem Flashen einmal <code>RESET</code> drücken.</span>
+        <span data-lang="en">Try another USB cable (some only charge). Otherwise hold <code>BOOT</code>, tap <code>RESET</code>, release <code>BOOT</code> and install again. Press <code>RESET</code> once after flashing.</span>
+      </p>
+    </details>
+  </section>
+
+  <section class="card">
+    <div class="step"><span data-lang="de">Schritt 2</span><span data-lang="en">Step 2</span></div>
+    <h2><span data-lang="de">Mit dem Handy koppeln</span><span data-lang="en">Pair with the phone</span></h2>
+    <ol>
+      <li><span data-lang="de">Den Dialog aus Schritt 1 schließen. Der Leser bleibt per USB am Computer.</span><span data-lang="en">Close the dialog from step 1. Keep the reader connected to the computer.</span></li>
+      <li><span data-lang="de">Hier „Kopplungscode holen“ klicken. Der Leser nimmt dann 2 Minuten lang neue Handys an.</span><span data-lang="en">Click “Get pairing code” here. The reader then accepts new phones for 2 minutes.</span></li>
+      <li><span data-lang="de">Im Auto Tracker: <em>Einstellungen → CAN-Leser (Beta)</em> einschalten, <em>CAN-Leser (OBD)</em> öffnen, „CAN-Leser suchen“, den Leser antippen und den Code im Kopplungsdialog von Android eingeben.</span><span data-lang="en">In Auto Tracker: turn on <em>Settings → CAN reader (beta)</em>, open <em>CAN reader (OBD)</em>, tap “Search for CAN reader”, pick the reader and enter the code in Android’s pairing dialog.</span></li>
+    </ol>
+    <div class="row">
+      <button type="button" class="primary" id="pair-connect"><span data-lang="de">Kopplungscode holen</span><span data-lang="en">Get pairing code</span></button>
+    </div>
+    <p class="muted" id="pair-status" aria-live="polite"></p>
+    <div id="pair-code-box" hidden>
+      <div class="muted"><span data-lang="de">Code für Android</span><span data-lang="en">Code for Android</span></div>
+      <div id="pair-code"></div>
+    </div>
+    <div id="pair-controls" hidden>
+      <div class="row">
+        <button type="button" class="secondary" id="pair-again"><span data-lang="de">Neuer Code</span><span data-lang="en">New code</span></button>
+        <button type="button" class="secondary" id="pair-status-cmd"><span data-lang="de">Zustand anzeigen</span><span data-lang="en">Show status</span></button>
+        <button type="button" class="secondary" id="pair-disconnect"><span data-lang="de">Trennen</span><span data-lang="en">Disconnect</span></button>
+      </div>
+      <details>
+        <summary><span data-lang="de">Ausgabe des Lesers</span><span data-lang="en">Reader output</span></summary>
+        <pre id="pair-log"></pre>
+      </details>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span data-lang="de">Danach</span><span data-lang="en">Afterwards</span></h2>
+    <p>
+      <span data-lang="de">Leser vom Computer trennen und ins Auto: Verkabelung und Versorgung stehen in der <a href="https://github.com/nicolasasauer/auto-tracker-can-bus/blob/main/README.de.md">Bauanleitung</a>. Im Auto Tracker den Leser unter <em>CAN-Leser (OBD)</em> für ein Fahrzeug hinterlegen; während einer Fahrt verbindet sich die App dann selbst.</span>
+      <span data-lang="en">Unplug the reader and take it to the car: wiring and power are in the <a href="https://github.com/nicolasasauer/auto-tracker-can-bus">build guide</a>. In Auto Tracker, assign the reader to a vehicle under <em>CAN reader (OBD)</em>; during a trip the app then connects by itself.</span>
+    </p>
+  </section>
+
+  <footer>
+    <span data-lang="de">Diese Seite schickt keine Daten an einen Server: Flashen und Koppeln laufen direkt zwischen Browser und Leser. Gehostet auf GitHub Pages. Flasher: <a href="https://github.com/esphome/esp-web-tools">ESP Web Tools</a> (Apache-2.0).</span>
+    <span data-lang="en">This page sends no data to any server: flashing and pairing run directly between browser and reader. Hosted on GitHub Pages. Flasher: <a href="https://github.com/esphome/esp-web-tools">ESP Web Tools</a> (Apache-2.0).</span>
+  </footer>
+</main>
+
+<script type="module">
+  import { initPairing } from './pairing.js';
+
+  const TEXTS = {
+    de: {
+      pairIdle: 'Noch nicht verbunden.',
+      pairWaiting: 'Verbunden, warte auf den Leser …',
+      pairOpen: 'Kopplungsfenster offen (2 Minuten). Jetzt den Code am Handy eingeben.',
+      pairNoAnswer: 'Der Leser antwortet nicht. Ist die Firmware aus Schritt 1 drauf? Einmal RESET drücken und erneut versuchen.',
+      pairBusy: 'Die Schnittstelle ist belegt. Den Dialog aus Schritt 1 schließen (oder andere Programme wie eine serielle Konsole) und erneut versuchen.',
+      unsupported: 'Nur in Chrome oder Edge am Computer.',
+      version: 'Version',
+    },
+    en: {
+      pairIdle: 'Not connected yet.',
+      pairWaiting: 'Connected, waiting for the reader …',
+      pairOpen: 'Pairing window open (2 minutes). Enter the code on the phone now.',
+      pairNoAnswer: 'The reader does not answer. Is the firmware from step 1 installed? Press RESET once and try again.',
+      pairBusy: 'The port is busy. Close the dialog from step 1 (or other programs such as a serial console) and try again.',
+      unsupported: 'Chrome or Edge on a computer only.',
+      version: 'Version',
+    },
+  };
+
+  let lang = (navigator.language || 'de').toLowerCase().startsWith('de') ? 'de' : 'en';
+  try {
+    const saved = localStorage.getItem('lang');
+    if (saved === 'de' || saved === 'en') lang = saved;
+  } catch {}
+
+  let currentStatus = 'pairIdle';
+  window.i18n = {
+    text(key) {
+      currentStatus = key;
+      return TEXTS[lang][key];
+    },
+  };
+
+  function applyLang() {
+    document.documentElement.lang = lang;
+    document.title = lang === 'de' ? 'CAN-Leser einrichten' : 'Set up the CAN reader';
+    for (const b of document.querySelectorAll('[data-set-lang]')) {
+      b.setAttribute('aria-pressed', String(b.dataset.setLang === lang));
+    }
+    const status = document.getElementById('pair-status');
+    if (status.textContent) status.textContent = window.i18n.text(currentStatus);
+    showVersion();
+  }
+
+  for (const b of document.querySelectorAll('[data-set-lang]')) {
+    b.addEventListener('click', () => {
+      lang = b.dataset.setLang;
+      try { localStorage.setItem('lang', lang); } catch {}
+      applyLang();
+    });
+  }
+
+  let fwVersion = null;
+  function showVersion() {
+    if (fwVersion) {
+      document.getElementById('fw-version').textContent = `${TEXTS[lang].version} ${fwVersion}`;
+    }
+  }
+  fetch('manifest.json')
+    .then((r) => r.json())
+    .then((m) => { fwVersion = m.version; showVersion(); })
+    .catch(() => {});
+
+  if (!('serial' in navigator)) document.getElementById('unsupported').hidden = false;
+  applyLang();
+  initPairing();
+</script>
+</body>
+</html>

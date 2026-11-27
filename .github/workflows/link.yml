@@ -1,0 +1,49 @@
+name: can_link
+
+# Analyse und Tests des Dart-Pakets can_link (BLE-Protokoll, Profile,
+# Sampler). Läuft nur auf GitHub-Rechnern (ubuntu-latest): Das Repository
+# ist öffentlich, ein eigener Rechner würde Code aus fremden PRs ausführen.
+on:
+  pull_request:
+    paths:
+      - 'packages/can_link/**'
+      - '.github/workflows/link.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'packages/can_link/**'
+      - '.github/workflows/link.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: link-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Analyse, Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: packages/can_link
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.6'
+          channel: stable
+          cache: true
+
+      - name: Abhängigkeiten
+        run: flutter pub get
+
+      - name: Analyse
+        run: flutter analyze
+
+      - name: Tests
+        run: flutter test --reporter failures-only

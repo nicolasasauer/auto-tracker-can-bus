@@ -9,7 +9,7 @@ build/
 *.keystore
 key.properties
 
-# Echte Mitschnitte der Werkbank (können die Fahrgestellnummer enthalten)
+# Echte Mitschnitte (können die Fahrgestellnummer enthalten)
 mitschnitt*.csv
 
 # Claude Code: persönliche Einstellungen und Arbeitskopien

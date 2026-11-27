@@ -1,8 +1,7 @@
 # CAN-Leser – BLE-Protokoll
 
 Schnittstelle zwischen der Firmware (`firmware/`) und den Apps. Apps nutzen
-sie über das Dart-Paket `packages/can_link`, allen voran die CAN-Werkbank
-(Sniffing, Profile). Ergänzt [`CAN-KONZEPT.md`](CAN-KONZEPT.md).
+sie über das Dart-Paket `packages/can_link`, allen voran der Auto Tracker. Ergänzt [`CAN-KONZEPT.md`](CAN-KONZEPT.md).
 
 Stand: **Protokollversion 1**, Stufe 1 (nur mithören). Neue Nachrichten oder
 Felder bekommen eine neue Versionsnummer; ältere Apps ignorieren unbekannte

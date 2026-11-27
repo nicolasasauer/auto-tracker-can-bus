@@ -1,7 +1,7 @@
 # can_link
 
-Gemeinsame Schnittstelle zum CAN-Leser (`firmware/`). Genutzt von der
-CAN-Werkbank (`app/`); andere Apps können es genauso einbinden.
+Gemeinsame Schnittstelle zum CAN-Leser (`firmware/`), etwa für die App
+Auto Tracker; andere Apps können es genauso einbinden.
 
 - `messages.dart`: BLE-Protokoll (Nachrichten zerlegen, Befehle kodieren),
   beschrieben in [`docs/CAN-BLE-PROTOKOLL.md`](../../docs/CAN-BLE-PROTOKOLL.md)

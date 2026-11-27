@@ -1,5 +1,5 @@
-/// Gemeinsame Schnittstelle zum CAN-Leser für die CAN-Werkbank und andere
-/// Apps. Protokoll: docs/CAN-BLE-PROTOKOLL.md.
+/// Gemeinsame Schnittstelle zum CAN-Leser für Apps wie den Auto Tracker.
+/// Protokoll: docs/CAN-BLE-PROTOKOLL.md.
 library;
 
 export 'src/ble_connection.dart';

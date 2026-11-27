@@ -1,7 +1,8 @@
 name: CAN-Leser Firmware
 
 # Unit-Tests des plattformunabhängigen Kerns und Bau der Firmware für den
-# XIAO ESP32-C6. Nur auf GitHub-Rechnern (ubuntu-latest), siehe werkbank.yml.
+# XIAO ESP32-C6. Nur auf GitHub-Rechnern (ubuntu-latest): Das Repository ist
+# öffentlich, ein eigener Rechner würde Code aus fremden PRs ausführen.
 on:
   pull_request:
     paths:
@@ -57,8 +58,15 @@ jobs:
       - name: Firmware bauen
         run: pio run -e xiao_esp32c6
 
+      # Das zusammengeführte Image (ab Adresse 0) braucht der Web-Flasher;
+      # release.yml bricht ohne es ab. Hier fällt es schon im PR auf.
+      - name: Zusammengeführtes Image vorhanden?
+        run: test -s .pio/build/xiao_esp32c6/firmware.factory.bin
+
       - uses: actions/upload-artifact@v4
         with:
           name: can-logger-firmware
-          path: firmware/.pio/build/xiao_esp32c6/firmware.bin
+          path: |
+            firmware/.pio/build/xiao_esp32c6/firmware.bin
+            firmware/.pio/build/xiao_esp32c6/firmware.factory.bin
           retention-days: 7

@@ -1,0 +1,6 @@
+{
+  "name": "can-leser-web-flasher",
+  "private": true,
+  "type": "module",
+  "description": "Seite zum Flashen und Koppeln des CAN-Lesers im Browser (GitHub Pages). Tests: node --test"
+}

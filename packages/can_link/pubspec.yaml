@@ -1,5 +1,5 @@
 name: can_link
-description: "Gemeinsame Schnittstelle zum CAN-Leser (BLE-Protokoll, Dekodierung) für die CAN-Werkbank und andere Apps."
+description: "Gemeinsame Schnittstelle zum CAN-Leser (BLE-Protokoll, Dekodierung) für Apps, die mit dem CAN-Leser sprechen."
 publish_to: 'none'
 version: 0.1.0
 
