@@ -1,0 +1,146 @@
+name: Web-Flasher
+
+# Seite zum Flashen und Koppeln im Browser (GitHub Pages, Ordner `web/`).
+# - Bei PRs: nur die Tests des Skripts.
+# - Nach jedem erfolgreichen Release, bei Änderungen an `web/` auf main und
+#   von Hand: Seite mit der Firmware des neuesten Releases (ohne
+#   Vorabversionen) bauen und veröffentlichen.
+#
+# ESP Web Tools kommt aus npm, mit fester Version und geprüfter Prüfsumme,
+# und liegt mit auf der Seite (kein fremdes CDN). Fremde Actions sind auf
+# Commit-SHAs festgelegt (Kommentar = Version).
+#
+# Einmalig nötig: Settings → Pages → Source: „GitHub Actions“.
+on:
+  pull_request:
+    paths:
+      - 'web/**'
+      - '.github/workflows/flasher.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - '.github/workflows/flasher.yml'
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flasher-${{ github.event_name == 'pull_request' && github.ref || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  ESP_WEB_TOOLS: esp-web-tools@10.4.0
+  # npm view esp-web-tools@10.4.0 dist.integrity
+  ESP_WEB_TOOLS_INTEGRITY: sha512-3pwkeFFm5Fj7UQo8SJNYK5RXrtNCpq6X9QoI6bMT4GBZWgrJqjn0YvM9ihG74BtMoSFYXfmDtkehuxe50PTMPQ==
+  FACTORY_BIN: can-logger-xiao-esp32c6-factory.bin
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name != 'workflow_run'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Tests (node --test)
+        working-directory: web
+        run: node --test
+
+  build:
+    name: Seite bauen
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: test
+    # Nicht bei PRs; nach einem Release nur, wenn es geklappt hat; von Hand
+    # nur von main.
+    if: >-
+      always() &&
+      github.event_name != 'pull_request' &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
+      (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success') &&
+      (github.event_name == 'workflow_run' || github.ref == 'refs/heads/main')
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+          # Nach einem Release die Seite von main, nicht vom Tag.
+          ref: main
+
+      - name: Firmware des neuesten Releases holen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag=$(gh release list --exclude-pre-releases --exclude-drafts --limit 20 \
+            --json tagName,isLatest -q 'map(select(.isLatest)) | .[0].tagName')
+          if [ -z "$tag" ]; then
+            echo "::error::Kein Release gefunden."
+            exit 1
+          fi
+          mkdir -p site
+          if ! gh release download "$tag" -p "$FACTORY_BIN" -D site; then
+            echo "::error::Release $tag hat kein $FACTORY_BIN. Erst ein Release mit dem neuen release.yml machen."
+            exit 1
+          fi
+          echo "FW_TAG=$tag" >> "$GITHUB_ENV"
+
+      - name: ESP Web Tools holen und prüfen
+        run: |
+          file=$(npm pack "$ESP_WEB_TOOLS" --silent)
+          sum="sha512-$(openssl dgst -sha512 -binary "$file" | base64 -w0)"
+          if [ "$sum" != "$ESP_WEB_TOOLS_INTEGRITY" ]; then
+            echo "::error::Prüfsumme von $ESP_WEB_TOOLS stimmt nicht."
+            exit 1
+          fi
+          tar xzf "$file"
+          mkdir -p site/esp-web-tools
+          cp -r package/dist/web/. site/esp-web-tools/
+          cp package/LICENSE site/esp-web-tools/LICENSE
+
+      - name: Seite zusammenstellen
+        run: |
+          cp web/index.html web/pairing.js web/serial_console.js site/
+          # Updates ohne Löschen behalten die Kopplung; beim ersten Mal fragt
+          # der Dialog. Improv (WLAN-Einrichtung) kann der Leser nicht.
+          cat > site/manifest.json <<EOF
+          {
+            "name": "CAN-Leser (XIAO ESP32-C6)",
+            "version": "$FW_TAG",
+            "new_install_prompt_erase": true,
+            "new_install_improv_wait_time": 0,
+            "builds": [
+              {
+                "chipFamily": "ESP32-C6",
+                "parts": [{ "path": "$FACTORY_BIN", "offset": 0 }]
+              }
+            ]
+          }
+          EOF
+          python3 -m json.tool site/manifest.json > /dev/null
+          ls -la site
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+
+  deploy:
+    name: Veröffentlichen
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
